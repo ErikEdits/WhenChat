@@ -15,6 +15,12 @@ classes/
 run/
 remappedSrc/
 
+# Output of multi-version build script
+dist/
+
+# Backup of gradle.properties created by build_all_versions.ps1
+gradle.properties.bak
+
 # OS
 .DS_Store
 Thumbs.db

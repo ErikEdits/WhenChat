@@ -6,35 +6,60 @@ Never lose track of when a message was sent again — perfect for busy servers, 
 
 ## Supported Versions
 
-Works on **Minecraft 1.21.x** with Fabric Loader. Each MC version needs its own build — adjust the versions in `gradle.properties` and rebuild.
+Builds are produced for every **Minecraft 1.21.x** release (1.21 through 1.21.8). One jar per MC version.
 
-## Build
+| MC version | Yarn build       | Loader  |
+| ---------- | ---------------- | ------- |
+| 1.21       | 1.21+build.9     | 0.16.10 |
+| 1.21.1     | 1.21.1+build.3   | 0.16.10 |
+| 1.21.2     | 1.21.2+build.1   | 0.16.10 |
+| 1.21.3     | 1.21.3+build.2   | 0.16.10 |
+| 1.21.4     | 1.21.4+build.8   | 0.16.10 |
+| 1.21.5     | 1.21.5+build.1   | 0.16.14 |
+| 1.21.6     | 1.21.6+build.1   | 0.16.14 |
+| 1.21.7     | 1.21.7+build.8   | 0.16.14 |
+| 1.21.8     | 1.21.8+build.1   | 0.17.2  |
 
-Requirements: **JDK 21** installed (e.g. Temurin 21).
+Requires **JDK 21** to build.
+
+## Build for a Single Version
+
+The committed `gradle.properties` defaults to **MC 1.21.1**. Run:
 
 ```bash
-# Windows (PowerShell)
+# Windows (PowerShell or CMD)
 .\gradlew.bat build
 
 # macOS / Linux
 ./gradlew build
 ```
 
-The resulting `.jar` will be at `build/libs/whenchat-1.0.0.jar`. Drop it into your Minecraft instance's `mods/` folder.
+The resulting `.jar` is at `build/libs/whenchat-1.0.0.jar`. Drop it into your Minecraft instance's `mods/` folder.
 
-> Note: this repo does **not** ship a Gradle Wrapper. First time, either install Gradle globally and run `gradle wrapper` once, or copy the wrapper files from a [Fabric Example Mod](https://github.com/FabricMC/fabric-example-mod).
+To target a different 1.21.x version, edit the three values at the top of `gradle.properties` (see the table above) and rebuild.
 
-## Targeting Another 1.21.x Version
+## Build for All 1.21.x Versions at Once
 
-Edit the three values in `gradle.properties` (check matching versions at https://fabricmc.net/develop/):
+Run the bundled PowerShell script:
 
-```properties
-minecraft_version = 1.21.4
-yarn_mappings = 1.21.4+build.8
-loader_version = 0.16.10
+```powershell
+.\build_all_versions.ps1
 ```
 
-Then rebuild.
+It loops through every supported MC version, builds each, and copies all jars to `./dist/` named like `whenchat-1.0.0-mc1.21.4.jar`.
+
+The script restores `gradle.properties` to its original state after running.
+
+## Automated CI Builds
+
+Every push to `main` triggers a GitHub Actions matrix build for all 1.21.x versions. Artifacts are attached to each workflow run.
+
+Pushing a tag of the form `v1.0.0` additionally publishes a GitHub Release with all jars attached.
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 ## How It Works
 
