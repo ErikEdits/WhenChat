@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "chattime",
+  "version": "${version}",
+  "name": "Chat Timestamps",
+  "description": "Prepends a HH:mm:ss timestamp to every received chat message.",
+  "authors": ["mukse"],
+  "contact": {
+    "sources": "https://github.com/ErikEdits/chat-timestamps-mod"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.mukse.chattime.ChatTimeMod"]
+  },
+  "mixins": ["chattime.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": ">=1.21",
+    "java": ">=21"
+  }
+}
