@@ -6,10 +6,15 @@ Never lose track of when a message was sent again — perfect for busy servers, 
 
 ## Supported Versions
 
-Builds are produced for every **Minecraft 1.20.x and 1.21.x** release (1.20 through 1.21.11). One jar per MC version. Total: **19 supported versions**.
+Builds are produced for every **Minecraft 1.19.x, 1.20.x and 1.21.x** release (1.19 through 1.21.11). One jar per MC version. Total: **24 supported versions**.
 
 | MC version | Yarn build       | Loader  |
 | ---------- | ---------------- | ------- |
+| 1.19       | 1.19+build.4     | 0.14.21 |
+| 1.19.1     | 1.19.1+build.6   | 0.14.21 |
+| 1.19.2     | 1.19.2+build.28  | 0.14.21 |
+| 1.19.3     | 1.19.3+build.5   | 0.14.21 |
+| 1.19.4     | 1.19.4+build.2   | 0.14.21 |
 | 1.20       | 1.20+build.1     | 0.16.10 |
 | 1.20.1     | 1.20.1+build.10  | 0.16.10 |
 | 1.20.2     | 1.20.2+build.4   | 0.16.10 |
