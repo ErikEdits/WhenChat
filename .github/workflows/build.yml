@@ -70,12 +70,16 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build --no-daemon --stacktrace
 
-      - name: Rename output jar
+      - name: Collect output jar
         run: |
           mkdir -p dist
-          mv build/libs/whenchat-*.jar dist/whenchat-mc${{ matrix.mc }}.jar 2>/dev/null || true
-          # remove sources jar from artifact
-          rm -f dist/*-sources.jar
+          main_jar=$(find build/libs -maxdepth 1 -name "whenchat-*.jar" ! -name "*-sources.jar" | head -1)
+          if [ -z "$main_jar" ]; then
+            echo "::error::No main jar produced!"
+            ls -la build/libs/ || true
+            exit 1
+          fi
+          cp "$main_jar" "dist/whenchat-mc${{ matrix.mc }}.jar"
           ls -la dist/
 
       - name: Upload artifact
