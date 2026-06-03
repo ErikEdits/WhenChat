@@ -3,6 +3,7 @@ name: Build all 1.21.x versions
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -89,25 +90,21 @@ jobs:
           path: dist/*.jar
           if-no-files-found: error
 
-  release:
-    name: Attach jars to release
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Flatten artifacts
-        run: |
-          mkdir -p release
-          find artifacts -name "*.jar" -exec cp {} release/ \;
-          ls -la release/
-
-      - name: Create GitHub release
+      # When triggered by a v* tag push, publish a dedicated release for THIS MC version.
+      # Example: pushing tag v1.0.0 creates releases v1.0.0-mc1.21, v1.0.0-mc1.21.1, ...
+      - name: Publish release for Minecraft ${{ matrix.mc }}
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*.jar
-          generate_release_notes: true
+          tag_name: ${{ github.ref_name }}-mc${{ matrix.mc }}
+          name: "WhenChat ${{ github.ref_name }} - Minecraft ${{ matrix.mc }}"
+          body: |
+            **WhenChat ${{ github.ref_name }}** for **Minecraft ${{ matrix.mc }}** (Fabric).
+
+            Drop the JAR below into your Minecraft instance's `mods/` folder.
+
+            - Fabric Loader: ${{ matrix.loader }}
+            - Yarn mappings: ${{ matrix.yarn }}
+            - Java: 21
+          files: dist/whenchat-mc${{ matrix.mc }}.jar
+          fail_on_unmatched_files: true

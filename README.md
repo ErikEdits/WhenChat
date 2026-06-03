@@ -54,12 +54,19 @@ The script restores `gradle.properties` to its original state after running.
 
 Every push to `main` triggers a GitHub Actions matrix build for all 1.21.x versions. Artifacts are attached to each workflow run.
 
-Pushing a tag of the form `v1.0.0` additionally publishes a GitHub Release with all jars attached.
+Pushing a tag of the form `v1.0.0` triggers a **separate GitHub Release per Minecraft version**, each with its own JAR attached:
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
+
+This produces releases like:
+
+- `v1.0.0-mc1.21` — JAR for Minecraft 1.21
+- `v1.0.0-mc1.21.1` — JAR for Minecraft 1.21.1
+- ...
+- `v1.0.0-mc1.21.8` — JAR for Minecraft 1.21.8
 
 ## How It Works
 
