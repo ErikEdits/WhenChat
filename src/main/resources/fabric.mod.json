@@ -13,6 +13,7 @@
     "issues": "https://github.com/ErikEdits/chat-timestamps-mod/issues"
   },
   "license": "MIT",
+  "icon": "assets/chattime/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
