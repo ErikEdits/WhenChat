@@ -114,7 +114,7 @@ $bmp.SetPixel($size - 10, $size - 9, $tickColor)
 $bmp.SetPixel($size - 9, $size - 10, $tickColor)
 
 # Save
-$outPath = Join-Path $PSScriptRoot "src\main\resources\assets\chattime\icon.png"
+$outPath = Join-Path $PSScriptRoot "src\main\resources\assets\whenchat\icon.png"
 $outDir = Split-Path $outPath -Parent
 if (-not (Test-Path $outDir)) {
     New-Item -ItemType Directory -Path $outDir -Force | Out-Null
