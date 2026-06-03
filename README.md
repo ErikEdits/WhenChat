@@ -71,6 +71,18 @@ This produces releases like:
 - ...
 - `v1.0.0-mc1.21.8` — JAR for Minecraft 1.21.8
 
+## Tests
+
+The timestamp-formatting logic lives in `com.mukse.whenchat.TimestampPrefix` — a pure helper extracted from the mixin so it can be unit-tested without bringing the Minecraft / Mixin runtime onto the test classpath.
+
+Run the test suite locally:
+
+```bash
+.\gradlew.bat test
+```
+
+The CI matrix runs these tests on **every supported 1.21.x version**, so any regression is caught against all targets in one push.
+
 ## How It Works
 
 A mixin in `net.minecraft.client.gui.hud.ChatHud#addMessage` intercepts every incoming message and prepends the current timestamp. Two mixin targets are registered so different 1.21.x builds work without code changes (`require = 0` lets non-matching signatures silently no-op).
