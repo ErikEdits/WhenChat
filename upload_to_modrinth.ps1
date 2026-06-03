@@ -46,6 +46,13 @@ Write-Host "Mod version (from gradle.properties): $modVersion"
 # uploaded versions are skipped automatically.
 
 $versions = @(
+    @{ mc = "1.20";    loader = "0.16.10"; yarn = "1.20+build.1"    },
+    @{ mc = "1.20.1";  loader = "0.16.10"; yarn = "1.20.1+build.10" },
+    @{ mc = "1.20.2";  loader = "0.16.10"; yarn = "1.20.2+build.4"  },
+    @{ mc = "1.20.3";  loader = "0.16.10"; yarn = "1.20.3+build.1"  },
+    @{ mc = "1.20.4";  loader = "0.16.10"; yarn = "1.20.4+build.3"  },
+    @{ mc = "1.20.5";  loader = "0.16.10"; yarn = "1.20.5+build.1"  },
+    @{ mc = "1.20.6";  loader = "0.16.10"; yarn = "1.20.6+build.3"  },
     @{ mc = "1.21";    loader = "0.16.10"; yarn = "1.21+build.9"    },
     @{ mc = "1.21.1";  loader = "0.16.10"; yarn = "1.21.1+build.3"  },
     @{ mc = "1.21.2";  loader = "0.16.10"; yarn = "1.21.2+build.1"  },

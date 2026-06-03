@@ -15,6 +15,13 @@ $ErrorActionPreference = "Stop"
 # Each entry: a Minecraft version, its matching yarn build, and loader version.
 # See https://fabricmc.net/develop/ for up-to-date values.
 $versions = @(
+    @{ mc = "1.20";   yarn = "1.20+build.1";    loader = "0.16.10" },
+    @{ mc = "1.20.1"; yarn = "1.20.1+build.10"; loader = "0.16.10" },
+    @{ mc = "1.20.2"; yarn = "1.20.2+build.4";  loader = "0.16.10" },
+    @{ mc = "1.20.3"; yarn = "1.20.3+build.1";  loader = "0.16.10" },
+    @{ mc = "1.20.4"; yarn = "1.20.4+build.3";  loader = "0.16.10" },
+    @{ mc = "1.20.5"; yarn = "1.20.5+build.1";  loader = "0.16.10" },
+    @{ mc = "1.20.6"; yarn = "1.20.6+build.3";  loader = "0.16.10" },
     @{ mc = "1.21";   yarn = "1.21+build.9";    loader = "0.16.10" },
     @{ mc = "1.21.1"; yarn = "1.21.1+build.3";  loader = "0.16.10" },
     @{ mc = "1.21.2"; yarn = "1.21.2+build.1";  loader = "0.16.10" },
