@@ -23,7 +23,10 @@ $versions = @(
     @{ mc = "1.21.5"; yarn = "1.21.5+build.1";  loader = "0.16.14" },
     @{ mc = "1.21.6"; yarn = "1.21.6+build.1";  loader = "0.16.14" },
     @{ mc = "1.21.7"; yarn = "1.21.7+build.8";  loader = "0.16.14" },
-    @{ mc = "1.21.8"; yarn = "1.21.8+build.1";  loader = "0.17.2"  }
+    @{ mc = "1.21.8";  yarn = "1.21.8+build.1";  loader = "0.17.2" },
+    @{ mc = "1.21.9";  yarn = "1.21.9+build.1";  loader = "0.17.2" },
+    @{ mc = "1.21.10"; yarn = "1.21.10+build.3"; loader = "0.19.3" },
+    @{ mc = "1.21.11"; yarn = "1.21.11+build.6"; loader = "0.19.3" }
 )
 
 $repoRoot = $PSScriptRoot
