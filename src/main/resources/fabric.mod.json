@@ -3,17 +3,25 @@
   "id": "chattime",
   "version": "${version}",
   "name": "Chat Timestamps",
-  "description": "Prepends a HH:mm:ss timestamp to every received chat message.",
-  "authors": ["mukse"],
+  "description": "A lightweight client-side mod that prepends a [HH:mm:ss] timestamp in front of every chat message you receive in Minecraft. Never lose track of when a message was sent again - perfect for busy servers, screenshots, or just keeping an eye on the time without opening the F3 menu. Works automatically with no configuration required.",
+  "authors": [
+    "ErikEdits"
+  ],
   "contact": {
-    "sources": "https://github.com/ErikEdits/chat-timestamps-mod"
+    "homepage": "https://github.com/ErikEdits/chat-timestamps-mod",
+    "sources": "https://github.com/ErikEdits/chat-timestamps-mod",
+    "issues": "https://github.com/ErikEdits/chat-timestamps-mod/issues"
   },
   "license": "MIT",
   "environment": "client",
   "entrypoints": {
-    "client": ["com.mukse.chattime.ChatTimeMod"]
+    "client": [
+      "com.mukse.chattime.ChatTimeMod"
+    ]
   },
-  "mixins": ["chattime.mixins.json"],
+  "mixins": [
+    "chattime.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.15.0",
     "minecraft": ">=1.21",
