@@ -21,6 +21,9 @@ dist/
 # Backup of gradle.properties created by build_all_versions.ps1
 gradle.properties.bak
 
+# Local build logs
+build.log
+
 # OS
 .DS_Store
 Thumbs.db
