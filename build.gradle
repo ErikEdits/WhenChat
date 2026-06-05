@@ -1,56 +1,14 @@
-plugins {
-	id 'fabric-loom' version '1.11-SNAPSHOT'
-	id 'maven-publish'
-}
+// Root project. The actual builds live in the per-loader subprojects.
+//
+// Aggregate `build` task delegates to all subprojects:
+//   ./gradlew build
+//
+// Build a single loader:
+//   ./gradlew :fabric:build
+//   ./gradlew :forge:build
+//   ./gradlew :neoforge:build
 
-version = project.mod_version
-group = project.maven_group
-
-base {
-	archivesName = project.archives_base_name
-}
-
-repositories {
-	// Add any additional repositories here
-}
-
-dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
-	testImplementation platform("org.junit:junit-bom:5.11.4")
-	testImplementation "org.junit.jupiter:junit-jupiter"
-	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
-}
-
-test {
-	useJUnitPlatform()
-	testLogging {
-		events "passed", "skipped", "failed"
-	}
-}
-
-processResources {
-	inputs.property "version", project.version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": project.version
-	}
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 17
-}
-
-java {
-	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_17
-	targetCompatibility = JavaVersion.VERSION_17
-}
-
-jar {
-	from("LICENSE") {
-		rename { "${it}_${project.archivesBaseName}"}
-	}
+allprojects {
+	group = "com.mukse"
+	version = project.findProperty("mod_version") ?: "0.0.0"
 }

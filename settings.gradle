@@ -1,12 +1,19 @@
 pluginManagement {
 	repositories {
-		maven {
-			name = 'Fabric'
-			url = 'https://maven.fabricmc.net/'
-		}
-		mavenCentral()
+		maven { name = 'Fabric';        url = 'https://maven.fabricmc.net/' }
+		maven { name = 'Forge';         url = 'https://maven.minecraftforge.net/' }
+		maven { name = 'NeoForged';     url = 'https://maven.neoforged.net/releases' }
+		maven { name = 'NeoForged-MR';  url = 'https://maven.neoforged.net/' }
 		gradlePluginPortal()
+		mavenCentral()
 	}
 }
 
-rootProject.name = 'chat-timestamps'
+rootProject.name = 'whenchat'
+
+include ':fabric'
+
+// Forge / NeoForge are added incrementally. Their build.gradle files will be
+// created and wired up in the following commits so we can iterate per loader.
+// include ':forge'
+// include ':neoforge'

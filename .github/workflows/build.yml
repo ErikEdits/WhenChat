@@ -113,30 +113,31 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Build with Gradle
-        run: ./gradlew build --no-daemon --stacktrace
+      - name: Build Fabric jar
+        run: ./gradlew :fabric:build --no-daemon --stacktrace
 
-      - name: Collect output jar
+      - name: Collect Fabric output jar
         run: |
           mkdir -p dist
-          main_jar=$(find build/libs -maxdepth 1 -name "whenchat-*.jar" ! -name "*-sources.jar" | head -1)
+          main_jar=$(find fabric/build/libs -maxdepth 1 -name "whenchat-fabric-*.jar" ! -name "*-sources.jar" | head -1)
           if [ -z "$main_jar" ]; then
-            echo "::error::No main jar produced!"
-            ls -la build/libs/ || true
+            echo "::error::No Fabric jar produced!"
+            ls -la fabric/build/libs/ || true
             exit 1
           fi
-          cp "$main_jar" "dist/whenchat-mc${{ matrix.mc }}.jar"
+          cp "$main_jar" "dist/whenchat-fabric-mc${{ matrix.mc }}.jar"
           ls -la dist/
 
-      - name: Upload artifact
+      - name: Upload Fabric artifact
         uses: actions/upload-artifact@v4
         with:
-          name: whenchat-mc${{ matrix.mc }}
+          name: whenchat-fabric-mc${{ matrix.mc }}
           path: dist/*.jar
           if-no-files-found: error
 
-      # When triggered by a v* tag push, publish a dedicated release for THIS MC version.
-      # Example: pushing tag v1.0.0 creates releases v1.0.0-mc1.21, v1.0.0-mc1.21.1, ...
+      # When triggered by a v* tag push, publish/update a release per MC version
+      # and attach this loader's jar. Multiple matrix jobs targeting the same
+      # tag (one per loader) will append their jars to the same release.
       - name: Publish release for Minecraft ${{ matrix.mc }}
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -144,12 +145,15 @@ jobs:
           tag_name: ${{ github.ref_name }}-mc${{ matrix.mc }}
           name: "WhenChat ${{ github.ref_name }} - Minecraft ${{ matrix.mc }}"
           body: |
-            **WhenChat ${{ github.ref_name }}** for **Minecraft ${{ matrix.mc }}** (Fabric).
+            **WhenChat ${{ github.ref_name }}** for **Minecraft ${{ matrix.mc }}**.
 
-            Drop the JAR below into your Minecraft instance's `mods/` folder.
+            Drop the JAR matching your loader into your Minecraft instance's `mods/` folder.
 
+            **Fabric / Quilt:**
             - Fabric Loader: ${{ matrix.loader }}
             - Yarn mappings: ${{ matrix.yarn }}
-            - Java: 21
-          files: dist/whenchat-mc${{ matrix.mc }}.jar
+            - Java: 17 or newer
+
+            Quilt note: Quilt Loader natively loads Fabric mods, so the `-fabric-` jar works on Quilt too.
+          files: dist/whenchat-fabric-mc${{ matrix.mc }}.jar
           fail_on_unmatched_files: true
