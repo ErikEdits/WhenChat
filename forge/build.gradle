@@ -1,0 +1,73 @@
+plugins {
+	id 'java'
+	id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
+	id 'org.spongepowered.mixin' version '0.7.+'
+}
+
+base {
+	archivesName = "${rootProject.name}-forge"
+}
+
+mixin {
+	add sourceSets.main, "whenchat-forge.refmap.json"
+	config "whenchat-forge.mixins.json"
+}
+
+minecraft {
+	mappings channel: 'official', version: project.minecraft_version
+
+	runs {
+		client {
+			workingDirectory project.file('run')
+			ideaModule "${rootProject.name}.${project.name}.main"
+			taskName 'Client'
+			mods {
+				whenchat {
+					source sourceSets.main
+				}
+			}
+		}
+	}
+}
+
+dependencies {
+	minecraft "net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}"
+	annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
+	withSourcesJar()
+}
+
+processResources {
+	inputs.property "version", project.version
+	inputs.property "minecraft_version", project.minecraft_version
+
+	filesMatching("META-INF/mods.toml") {
+		expand "version": project.version, "minecraft_version": project.minecraft_version
+	}
+}
+
+jar {
+	from(rootProject.file("LICENSE")) {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+	manifest {
+		attributes([
+			"Specification-Title"     : "whenchat",
+			"Specification-Vendor"    : "ErikEdits",
+			"Specification-Version"   : "1",
+			"Implementation-Title"    : project.name,
+			"Implementation-Version"  : project.version,
+			"Implementation-Vendor"   : "ErikEdits",
+			"MixinConfigs"            : "whenchat-forge.mixins.json"
+		])
+	}
+}
+

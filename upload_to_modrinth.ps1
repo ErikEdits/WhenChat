@@ -1,18 +1,19 @@
-# Uploads every WhenChat GitHub release JAR to Modrinth as a separate Modrinth
-# version, each tied to exactly one Minecraft version and depending on Fabric API.
+# Uploads every WhenChat release JAR to Modrinth as a separate Modrinth version.
 #
-# Idempotent: fetches existing Modrinth versions first and skips anything that
-# is already uploaded. Safe to re-run after adding new MC versions or bumping
-# the mod version.
+# Per (MC version + loader) combination produces ONE Modrinth version, with:
+#   - The correct loader(s) flag (Fabric jar is also marked as Quilt-compatible
+#     because Quilt Loader runs Fabric mods natively)
+#   - The correct Minecraft version
+#   - Fabric API as a required dependency for Fabric/Quilt uploads
+#
+# Idempotent: existing Modrinth versions are skipped, so this is safe to re-run
+# after adding new MC versions or loaders.
 #
 # Usage:
 #   $env:MODRINTH_TOKEN = "mrp_yourTokenHere"
 #   .\upload_to_modrinth.ps1
 #
 # Required PAT scopes: Read projects + Create versions.
-# Cleanup afterwards:
-#   Remove-Item Env:MODRINTH_TOKEN
-#   (and delete the PAT at https://modrinth.com/settings/pats)
 
 $ErrorActionPreference = "Stop"
 
@@ -24,28 +25,19 @@ if (-not $env:MODRINTH_TOKEN) {
 $token       = $env:MODRINTH_TOKEN
 $slug        = "whenchat"
 $githubRepo  = "ErikEdits/WhenChat"
-$fabricApiId = "P7dR8mSH"      # fabric-api project id on Modrinth (well-known)
+$fabricApiId = "P7dR8mSH"      # fabric-api project id on Modrinth
 $userAgent   = "ErikEdits/WhenChat (modrinth-uploader)"
 
 # --- Read mod version from gradle.properties --------------------------------
 
 $gradleProps = Join-Path $PSScriptRoot "gradle.properties"
-if (-not (Test-Path $gradleProps)) {
-    Write-Error "Cannot find gradle.properties next to this script."
-    exit 1
-}
 $modVersion = (Select-String -Path $gradleProps -Pattern '^\s*mod_version\s*=\s*(.+)\s*$').Matches.Groups[1].Value.Trim()
-if (-not $modVersion) {
-    Write-Error "mod_version not found in gradle.properties."
-    exit 1
-}
-Write-Host "Mod version (from gradle.properties): $modVersion"
+Write-Host "Mod version: $modVersion"
 
-# --- Versions to upload -----------------------------------------------------
-# When you add a new MC version, just add a row here and re-run. Already-
-# uploaded versions are skipped automatically.
+# --- Versions per loader to upload ------------------------------------------
+# Fabric jar is also marked as Quilt-compatible.
 
-$versions = @(
+$fabricVersions = @(
     @{ mc = "1.19";    loader = "0.14.21"; yarn = "1.19+build.4"    },
     @{ mc = "1.19.1";  loader = "0.14.21"; yarn = "1.19.1+build.6"  },
     @{ mc = "1.19.2";  loader = "0.14.21"; yarn = "1.19.2+build.28" },
@@ -72,6 +64,27 @@ $versions = @(
     @{ mc = "1.21.11"; loader = "0.19.3";  yarn = "1.21.11+build.6" }
 )
 
+$neoforgeVersions = @(
+    @{ mc = "1.20.6"; neoforge = "20.6.119" },
+    @{ mc = "1.21";   neoforge = "21.0.167" },
+    @{ mc = "1.21.1"; neoforge = "21.1.180" },
+    @{ mc = "1.21.3"; neoforge = "21.3.91"  },
+    @{ mc = "1.21.4"; neoforge = "21.4.149" },
+    @{ mc = "1.21.5"; neoforge = "21.5.94"  },
+    @{ mc = "1.21.6"; neoforge = "21.6.20"  },
+    @{ mc = "1.21.7"; neoforge = "21.7.40"  },
+    @{ mc = "1.21.8"; neoforge = "21.8.49"  }
+)
+
+$forgeVersions = @(
+    @{ mc = "1.20.6"; forge = "50.1.0"  },
+    @{ mc = "1.21";   forge = "51.0.33" },
+    @{ mc = "1.21.1"; forge = "52.0.40" },
+    @{ mc = "1.21.3"; forge = "53.0.34" },
+    @{ mc = "1.21.4"; forge = "54.1.6"  },
+    @{ mc = "1.21.5"; forge = "55.0.22" }
+)
+
 # --- Workspace --------------------------------------------------------------
 
 $tmpDir = Join-Path $env:TEMP "whenchat-modrinth-upload"
@@ -80,13 +93,11 @@ New-Item -ItemType Directory $tmpDir | Out-Null
 
 # --- Verify token + get project id ------------------------------------------
 
-Write-Host "Verifying token and fetching project info..."
+Write-Host "Verifying token + fetching project info..."
 $projectFile = Join-Path $tmpDir "project.json"
 $status = & curl.exe -s -o $projectFile -w "%{http_code}" `
-    -H "Authorization: $token" `
-    -H "User-Agent: $userAgent" `
+    -H "Authorization: $token" -H "User-Agent: $userAgent" `
     "https://api.modrinth.com/v2/project/$slug"
-
 if ($status -ne "200") {
     Write-Error "Project fetch failed (HTTP $status). Body: $(Get-Content -Raw $projectFile)"
     exit 1
@@ -95,110 +106,166 @@ $project   = (Get-Content -Raw $projectFile) | ConvertFrom-Json
 $projectId = $project.id
 Write-Host "  Project: $($project.title)  (id: $projectId)"
 
-# --- Fetch existing versions so we can skip duplicates ----------------------
+# --- Fetch existing versions ------------------------------------------------
 
-Write-Host "Fetching existing Modrinth versions..."
 $existingFile = Join-Path $tmpDir "existing.json"
 $status = & curl.exe -s -o $existingFile -w "%{http_code}" `
-    -H "Authorization: $token" `
-    -H "User-Agent: $userAgent" `
+    -H "Authorization: $token" -H "User-Agent: $userAgent" `
     "https://api.modrinth.com/v2/project/$slug/version"
-
-if ($status -ne "200") {
-    Write-Error "Existing-versions fetch failed (HTTP $status). Body: $(Get-Content -Raw $existingFile)"
-    exit 1
-}
-$existing = (Get-Content -Raw $existingFile) | ConvertFrom-Json
+$existing = if ($status -eq "200") { (Get-Content -Raw $existingFile) | ConvertFrom-Json } else { @() }
 $existingSet = @{}
 foreach ($ev in $existing) { $existingSet[$ev.version_number] = $true }
-Write-Host "  Found $($existing.Count) existing version(s) on Modrinth"
+Write-Host "  Found $($existing.Count) existing Modrinth version(s)"
 
-# --- Upload loop ------------------------------------------------------------
+# --- Upload helper ----------------------------------------------------------
 
-$results = @()
+function Upload-Version {
+    param(
+        [string]$LoaderTag,       # "fabric", "neoforge", "forge"
+        [string[]]$LoaderArray,   # e.g. @("fabric", "quilt")
+        [string]$Mc,
+        [string]$JarName,
+        [string]$DownloadUrl,
+        [string]$Changelog,
+        [bool]$RequireFabricApi
+    )
 
-foreach ($v in $versions) {
-    $mc = $v.mc
-    $versionNumber = "$modVersion+mc$mc"
-
+    $versionNumber = "$modVersion+$LoaderTag-mc$Mc"
     Write-Host ""
-    Write-Host "=== Minecraft $mc ($versionNumber) ==="
+    Write-Host "=== $LoaderTag MC $Mc ($versionNumber) ==="
 
     if ($existingSet.ContainsKey($versionNumber)) {
         Write-Host "  SKIP - already exists on Modrinth"
-        $results += [PSCustomObject]@{ MC = $mc; Status = "SKIP (exists)"; Url = "https://modrinth.com/mod/$slug/version/$versionNumber" }
-        continue
+        return [PSCustomObject]@{ Loader = $LoaderTag; MC = $Mc; Status = "SKIP (exists)"; Url = "https://modrinth.com/mod/$slug/version/$versionNumber" }
     }
 
-    $jarName     = "whenchat-mc$mc.jar"
-    $jarPath     = Join-Path $tmpDir $jarName
-    $downloadUrl = "https://github.com/$githubRepo/releases/download/v$modVersion-mc$mc/$jarName"
-
-    Write-Host "  Downloading $downloadUrl"
-    & curl.exe -fsSL -o $jarPath $downloadUrl
+    $jarPath = Join-Path $tmpDir $JarName
+    Write-Host "  Downloading $DownloadUrl"
+    & curl.exe -fsSL -o $jarPath $DownloadUrl
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path $jarPath)) {
-        Write-Warning "  Download failed - is the GitHub release published?"
-        $results += [PSCustomObject]@{ MC = $mc; Status = "DOWNLOAD FAIL"; Url = "" }
-        continue
+        Write-Warning "  Download failed - is the GitHub release published with this loader's jar?"
+        return [PSCustomObject]@{ Loader = $LoaderTag; MC = $Mc; Status = "DOWNLOAD FAIL"; Url = "" }
     }
-    $jarSize = (Get-Item $jarPath).Length
-    Write-Host "  Downloaded $jarSize bytes"
+    Write-Host "  Downloaded $((Get-Item $jarPath).Length) bytes"
 
-    $changelog = @"
-Release of **WhenChat $modVersion** for **Minecraft $mc**.
-
-WhenChat prepends a ``[HH:mm:ss]`` timestamp in front of every chat message you receive. Client-side only, no configuration required.
-
-Build info:
-- Minecraft: $mc
-- Fabric Loader: $($v.loader)
-- Yarn mappings: $($v.yarn)
-- Java: 21
-
-Source code and issue tracker: https://github.com/$githubRepo
-"@
+    $deps = @()
+    if ($RequireFabricApi) {
+        $deps += @{ project_id = $fabricApiId; dependency_type = "required" }
+    }
 
     $meta = [ordered]@{
-        name           = "WhenChat $modVersion for Minecraft $mc"
+        name           = "WhenChat $modVersion - $LoaderTag - Minecraft $Mc"
         version_number = $versionNumber
-        changelog      = $changelog
-        dependencies   = @(@{ project_id = $fabricApiId; dependency_type = "required" })
-        game_versions  = @($mc)
+        changelog      = $Changelog
+        dependencies   = $deps
+        game_versions  = @($Mc)
         version_type   = "release"
-        loaders        = @("fabric")
+        loaders        = $LoaderArray
         featured       = $false
         status         = "listed"
         project_id     = $projectId
-        file_parts     = @($jarName)
-        primary_file   = $jarName
+        file_parts     = @($JarName)
+        primary_file   = $JarName
     } | ConvertTo-Json -Depth 10 -Compress
 
-    $metaPath = Join-Path $tmpDir "meta-$mc.json"
+    $metaPath = Join-Path $tmpDir "meta-$LoaderTag-$Mc.json"
     [System.IO.File]::WriteAllText($metaPath, $meta, [System.Text.UTF8Encoding]::new($false))
 
-    Write-Host "  Uploading to Modrinth..."
-    $respFile = Join-Path $tmpDir "resp-$mc.txt"
+    $respFile = Join-Path $tmpDir "resp-$LoaderTag-$Mc.txt"
     $httpCode = & curl.exe -s -o $respFile -w "%{http_code}" `
-        -H "Authorization: $token" `
-        -H "User-Agent: $userAgent" `
+        -H "Authorization: $token" -H "User-Agent: $userAgent" `
         -X POST `
         "https://api.modrinth.com/v2/version" `
         -F "data=<$metaPath;type=application/json" `
-        -F "$jarName=@$jarPath;type=application/java-archive"
+        -F "$JarName=@$jarPath;type=application/java-archive"
 
     $body = if (Test-Path $respFile) { Get-Content -Raw $respFile } else { "" }
-
     if ($httpCode -eq "200" -or $httpCode -eq "201") {
         $created = $body | ConvertFrom-Json
         $url = "https://modrinth.com/mod/$slug/version/$($created.version_number)"
         Write-Host "  OK $url" -ForegroundColor Green
-        $results += [PSCustomObject]@{ MC = $mc; Status = "OK"; Url = $url }
+        return [PSCustomObject]@{ Loader = $LoaderTag; MC = $Mc; Status = "OK"; Url = $url }
     } else {
         Write-Warning "  HTTP $httpCode - $body"
-        $results += [PSCustomObject]@{ MC = $mc; Status = "HTTP $httpCode"; Url = "" }
+        return [PSCustomObject]@{ Loader = $LoaderTag; MC = $Mc; Status = "HTTP $httpCode"; Url = "" }
     }
+}
 
-    # Be polite to the API
+# --- Upload loops -----------------------------------------------------------
+
+$results = @()
+
+# Fabric (+ Quilt via fabric jar)
+foreach ($v in $fabricVersions) {
+    $changelog = @"
+Release of **WhenChat $modVersion** for **Minecraft $($v.mc)** on **Fabric / Quilt**.
+
+WhenChat prepends a ``[HH:mm:ss]`` timestamp in front of every chat message you receive. Client-side only.
+
+Build info:
+- Loader: Fabric (also loads on Quilt)
+- Fabric Loader: $($v.loader)
+- Yarn mappings: $($v.yarn)
+- Java: 17 or newer
+
+Source code: https://github.com/$githubRepo
+"@
+    $results += Upload-Version `
+        -LoaderTag "fabric" `
+        -LoaderArray @("fabric", "quilt") `
+        -Mc $v.mc `
+        -JarName "whenchat-fabric-mc$($v.mc).jar" `
+        -DownloadUrl "https://github.com/$githubRepo/releases/download/v$modVersion-mc$($v.mc)/whenchat-fabric-mc$($v.mc).jar" `
+        -Changelog $changelog `
+        -RequireFabricApi $true
+    Start-Sleep -Seconds 2
+}
+
+# NeoForge
+foreach ($v in $neoforgeVersions) {
+    $changelog = @"
+Release of **WhenChat $modVersion** for **Minecraft $($v.mc)** on **NeoForge**.
+
+WhenChat prepends a ``[HH:mm:ss]`` timestamp in front of every chat message you receive. Client-side only.
+
+Build info:
+- Loader: NeoForge $($v.neoforge)
+- Java: 21
+
+Source code: https://github.com/$githubRepo
+"@
+    $results += Upload-Version `
+        -LoaderTag "neoforge" `
+        -LoaderArray @("neoforge") `
+        -Mc $v.mc `
+        -JarName "whenchat-neoforge-mc$($v.mc).jar" `
+        -DownloadUrl "https://github.com/$githubRepo/releases/download/v$modVersion-mc$($v.mc)/whenchat-neoforge-mc$($v.mc).jar" `
+        -Changelog $changelog `
+        -RequireFabricApi $false
+    Start-Sleep -Seconds 2
+}
+
+# Forge
+foreach ($v in $forgeVersions) {
+    $changelog = @"
+Release of **WhenChat $modVersion** for **Minecraft $($v.mc)** on **Forge**.
+
+WhenChat prepends a ``[HH:mm:ss]`` timestamp in front of every chat message you receive. Client-side only.
+
+Build info:
+- Loader: Forge $($v.forge)
+- Java: 21
+
+Source code: https://github.com/$githubRepo
+"@
+    $results += Upload-Version `
+        -LoaderTag "forge" `
+        -LoaderArray @("forge") `
+        -Mc $v.mc `
+        -JarName "whenchat-forge-mc$($v.mc).jar" `
+        -DownloadUrl "https://github.com/$githubRepo/releases/download/v$modVersion-mc$($v.mc)/whenchat-forge-mc$($v.mc).jar" `
+        -Changelog $changelog `
+        -RequireFabricApi $false
     Start-Sleep -Seconds 2
 }
 
@@ -208,7 +275,6 @@ Write-Host " Modrinth upload summary"
 Write-Host "=========================="
 $results | Format-Table -AutoSize
 
-# Cleanup
 Remove-Item -Recurse -Force $tmpDir
 Write-Host ""
 Write-Host "Done. Don't forget to revoke the PAT at https://modrinth.com/settings/pats"

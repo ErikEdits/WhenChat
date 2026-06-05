@@ -1,4 +1,4 @@
-name: Build all 1.21.x versions
+name: Build all loaders + MC versions
 
 on:
   push:
@@ -12,7 +12,8 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  fabric:
+    name: Fabric ${{ matrix.mc }}
     runs-on: ubuntu-latest
 
     strategy:
@@ -93,22 +94,17 @@ jobs:
             loader: "0.19.3"
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
-      - name: Patch gradle.properties for Minecraft ${{ matrix.mc }}
+      - name: Patch gradle.properties
         run: |
           sed -i -E "s|^minecraft_version\s*=.*|minecraft_version = ${{ matrix.mc }}|"  gradle.properties
           sed -i -E "s|^yarn_mappings\s*=.*|yarn_mappings = ${{ matrix.yarn }}|"        gradle.properties
           sed -i -E "s|^loader_version\s*=.*|loader_version = ${{ matrix.loader }}|"   gradle.properties
-          echo "--- gradle.properties ---"
-          cat gradle.properties
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
@@ -116,29 +112,20 @@ jobs:
       - name: Build Fabric jar
         run: ./gradlew :fabric:build --no-daemon --stacktrace
 
-      - name: Collect Fabric output jar
+      - name: Collect output
         run: |
           mkdir -p dist
           main_jar=$(find fabric/build/libs -maxdepth 1 -name "whenchat-fabric-*.jar" ! -name "*-sources.jar" | head -1)
-          if [ -z "$main_jar" ]; then
-            echo "::error::No Fabric jar produced!"
-            ls -la fabric/build/libs/ || true
-            exit 1
-          fi
+          if [ -z "$main_jar" ]; then echo "::error::No Fabric jar"; exit 1; fi
           cp "$main_jar" "dist/whenchat-fabric-mc${{ matrix.mc }}.jar"
-          ls -la dist/
 
-      - name: Upload Fabric artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: whenchat-fabric-mc${{ matrix.mc }}
           path: dist/*.jar
           if-no-files-found: error
 
-      # When triggered by a v* tag push, publish/update a release per MC version
-      # and attach this loader's jar. Multiple matrix jobs targeting the same
-      # tag (one per loader) will append their jars to the same release.
-      - name: Publish release for Minecraft ${{ matrix.mc }}
+      - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
@@ -147,13 +134,137 @@ jobs:
           body: |
             **WhenChat ${{ github.ref_name }}** for **Minecraft ${{ matrix.mc }}**.
 
-            Drop the JAR matching your loader into your Minecraft instance's `mods/` folder.
-
-            **Fabric / Quilt:**
-            - Fabric Loader: ${{ matrix.loader }}
-            - Yarn mappings: ${{ matrix.yarn }}
-            - Java: 17 or newer
-
-            Quilt note: Quilt Loader natively loads Fabric mods, so the `-fabric-` jar works on Quilt too.
+            Pick the JAR that matches your loader:
+            - `whenchat-fabric-mc${{ matrix.mc }}.jar` — Fabric / Quilt (Quilt Loader runs Fabric mods natively)
+            - `whenchat-neoforge-mc${{ matrix.mc }}.jar` — NeoForge (only attached for MC 1.20.5+)
+            - `whenchat-forge-mc${{ matrix.mc }}.jar` — Forge (only attached for MC 1.20.5+)
           files: dist/whenchat-fabric-mc${{ matrix.mc }}.jar
+          fail_on_unmatched_files: true
+
+  neoforge:
+    name: NeoForge ${{ matrix.mc }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mc: "1.20.6"
+            neoforge: "20.6.119"
+          - mc: "1.21"
+            neoforge: "21.0.167"
+          - mc: "1.21.1"
+            neoforge: "21.1.180"
+          - mc: "1.21.3"
+            neoforge: "21.3.91"
+          - mc: "1.21.4"
+            neoforge: "21.4.149"
+          - mc: "1.21.5"
+            neoforge: "21.5.94"
+          - mc: "1.21.6"
+            neoforge: "21.6.20"
+          - mc: "1.21.7"
+            neoforge: "21.7.40"
+          - mc: "1.21.8"
+            neoforge: "21.8.49"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Patch gradle.properties
+        run: |
+          sed -i -E "s|^minecraft_version\s*=.*|minecraft_version = ${{ matrix.mc }}|"  gradle.properties
+          sed -i -E "s|^neoforge_version\s*=.*|neoforge_version = ${{ matrix.neoforge }}|" gradle.properties
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build NeoForge jar
+        run: ./gradlew :neoforge:build --no-daemon --stacktrace
+
+      - name: Collect output
+        run: |
+          mkdir -p dist
+          main_jar=$(find neoforge/build/libs -maxdepth 1 -name "whenchat-neoforge-*.jar" ! -name "*-sources.jar" | head -1)
+          if [ -z "$main_jar" ]; then echo "::error::No NeoForge jar"; exit 1; fi
+          cp "$main_jar" "dist/whenchat-neoforge-mc${{ matrix.mc }}.jar"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whenchat-neoforge-mc${{ matrix.mc }}
+          path: dist/*.jar
+          if-no-files-found: error
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}-mc${{ matrix.mc }}
+          name: "WhenChat ${{ github.ref_name }} - Minecraft ${{ matrix.mc }}"
+          files: dist/whenchat-neoforge-mc${{ matrix.mc }}.jar
+          fail_on_unmatched_files: true
+
+  forge:
+    name: Forge ${{ matrix.mc }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mc: "1.20.6"
+            forge: "50.1.0"
+          - mc: "1.21"
+            forge: "51.0.33"
+          - mc: "1.21.1"
+            forge: "52.0.40"
+          - mc: "1.21.3"
+            forge: "53.0.34"
+          - mc: "1.21.4"
+            forge: "54.1.6"
+          - mc: "1.21.5"
+            forge: "55.0.22"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Patch gradle.properties
+        run: |
+          sed -i -E "s|^minecraft_version\s*=.*|minecraft_version = ${{ matrix.mc }}|"  gradle.properties
+          sed -i -E "s|^forge_version\s*=.*|forge_version = ${{ matrix.forge }}|" gradle.properties
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build Forge jar
+        run: ./gradlew :forge:build --no-daemon --stacktrace
+
+      - name: Collect output
+        run: |
+          mkdir -p dist
+          main_jar=$(find forge/build/libs -maxdepth 1 -name "whenchat-forge-*.jar" ! -name "*-sources.jar" | head -1)
+          if [ -z "$main_jar" ]; then echo "::error::No Forge jar"; exit 1; fi
+          cp "$main_jar" "dist/whenchat-forge-mc${{ matrix.mc }}.jar"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whenchat-forge-mc${{ matrix.mc }}
+          path: dist/*.jar
+          if-no-files-found: error
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}-mc${{ matrix.mc }}
+          name: "WhenChat ${{ github.ref_name }} - Minecraft ${{ matrix.mc }}"
+          files: dist/whenchat-forge-mc${{ matrix.mc }}.jar
           fail_on_unmatched_files: true

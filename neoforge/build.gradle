@@ -1,0 +1,57 @@
+plugins {
+	id 'java'
+	id 'net.neoforged.moddev' version '2.0.78'
+}
+
+base {
+	archivesName = "${rootProject.name}-neoforge"
+}
+
+neoForge {
+	version = project.neoforge_version
+
+	runs {
+		client {
+			client()
+			ideName = "NeoForge Client"
+		}
+	}
+
+	mods {
+		whenchat {
+			sourceSet sourceSets.main
+		}
+	}
+
+	validateAccessTransformers = false
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
+	withSourcesJar()
+}
+
+processResources {
+	inputs.property "version", project.version
+	inputs.property "minecraft_version", project.minecraft_version
+
+	filesMatching("META-INF/neoforge.mods.toml") {
+		expand "version": project.version, "minecraft_version": project.minecraft_version
+	}
+}
+
+jar {
+	from(rootProject.file("LICENSE")) {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+	manifest {
+		attributes(
+			"MixinConfigs": "whenchat-neoforge.mixins.json"
+		)
+	}
+}

@@ -1,0 +1,32 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "MIT"
+issueTrackerURL = "https://github.com/ErikEdits/WhenChat/issues"
+
+[[mods]]
+modId = "whenchat"
+version = "${version}"
+displayName = "WhenChat"
+displayURL = "https://github.com/ErikEdits/WhenChat"
+authors = "ErikEdits"
+description = '''
+WhenChat is a lightweight client-side mod that prepends a [HH:mm:ss] timestamp in front of every chat message you receive in Minecraft. Never lose track of when a message was sent again - perfect for busy servers, screenshots, or just keeping an eye on the time without opening the F3 menu. Works automatically with no configuration required.
+'''
+logoFile = "icon.png"
+
+[[dependencies.whenchat]]
+modId = "neoforge"
+type = "required"
+versionRange = "[20,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.whenchat]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.20,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[mixins]]
+config = "whenchat-neoforge.mixins.json"
