@@ -1,103 +1,112 @@
 # WhenChat
 
-A lightweight Fabric client-side mod that prepends a `[HH:mm:ss]` timestamp in front of every chat message you receive in Minecraft.
+A lightweight client-side mod that prepends a `[HH:mm:ss]` timestamp in front of every chat message you receive in Minecraft.
 
 Never lose track of when a message was sent again — perfect for busy servers, screenshots, or just keeping an eye on the time without opening the F3 menu. Works automatically with no configuration required.
 
-## Supported Versions
+## Supported Loaders and Versions
 
-Builds are produced for every **Minecraft 1.19.x, 1.20.x and 1.21.x** release (1.19 through 1.21.11). One jar per MC version. Total: **24 supported versions**.
+| Loader        | Minecraft versions                                |
+| ------------- | ------------------------------------------------- |
+| **Fabric**    | 1.19, 1.19.1 – 1.19.4, 1.20 – 1.20.6, 1.21 – 1.21.11 (24 versions) |
+| **Quilt**     | Same as Fabric — Quilt Loader runs the Fabric JAR natively |
+| **NeoForge**  | 1.20.6, 1.21, 1.21.1, 1.21.3, 1.21.4, 1.21.5, 1.21.8 |
+| **Forge**     | 1.20.6, 1.21, 1.21.1, 1.21.3, 1.21.4, 1.21.5      |
 
-| MC version | Yarn build       | Loader  |
-| ---------- | ---------------- | ------- |
-| 1.19       | 1.19+build.4     | 0.14.21 |
-| 1.19.1     | 1.19.1+build.6   | 0.14.21 |
-| 1.19.2     | 1.19.2+build.28  | 0.14.21 |
-| 1.19.3     | 1.19.3+build.5   | 0.14.21 |
-| 1.19.4     | 1.19.4+build.2   | 0.14.21 |
-| 1.20       | 1.20+build.1     | 0.16.10 |
-| 1.20.1     | 1.20.1+build.10  | 0.16.10 |
-| 1.20.2     | 1.20.2+build.4   | 0.16.10 |
-| 1.20.3     | 1.20.3+build.1   | 0.16.10 |
-| 1.20.4     | 1.20.4+build.3   | 0.16.10 |
-| 1.20.5     | 1.20.5+build.1   | 0.16.10 |
-| 1.20.6     | 1.20.6+build.3   | 0.16.10 |
-| 1.21       | 1.21+build.9     | 0.16.10 |
-| 1.21.1     | 1.21.1+build.3   | 0.16.10 |
-| 1.21.2     | 1.21.2+build.1   | 0.16.10 |
-| 1.21.3     | 1.21.3+build.2   | 0.16.10 |
-| 1.21.4     | 1.21.4+build.8   | 0.16.10 |
-| 1.21.5     | 1.21.5+build.1   | 0.16.14 |
-| 1.21.6     | 1.21.6+build.1   | 0.16.14 |
-| 1.21.7     | 1.21.7+build.8   | 0.16.14 |
-| 1.21.8     | 1.21.8+build.1   | 0.17.2  |
-| 1.21.9     | 1.21.9+build.1   | 0.17.2  |
-| 1.21.10    | 1.21.10+build.3  | 0.19.3  |
-| 1.21.11    | 1.21.11+build.6  | 0.19.3  |
+Pre-built JARs for every supported (loader × MC version) are attached to each GitHub Release and published to Modrinth.
 
-Requires **JDK 21** to build.
+## Building From Source
 
-## Build for a Single Version
+Requires **JDK 21**. The Gradle Wrapper is included, no separate Gradle install needed.
 
-The committed `gradle.properties` defaults to **MC 1.21.1**. Run:
+The project is laid out as one Gradle subproject per loader:
+
+```
+.
+├── fabric/      ← Fabric (and Quilt) sources
+├── neoforge/    ← NeoForge sources
+└── forge/       ← Forge sources
+```
+
+### Build one loader
 
 ```bash
-# Windows (PowerShell or CMD)
-.\gradlew.bat build
+# Fabric
+./gradlew :fabric:build
 
-# macOS / Linux
-./gradlew build
+# NeoForge
+./gradlew :neoforge:build
+
+# Forge
+./gradlew :forge:build
 ```
 
-The resulting `.jar` is at `build/libs/whenchat-1.0.0.jar`. Drop it into your Minecraft instance's `mods/` folder.
+The output JARs land in `<loader>/build/libs/whenchat-<loader>-<version>.jar`. Drop the one matching your loader into your Minecraft instance's `mods/` folder.
 
-To target a different 1.21.x version, edit the three values at the top of `gradle.properties` (see the table above) and rebuild.
+### Target a different Minecraft version
 
-## Build for All 1.21.x Versions at Once
+`gradle.properties` at the repo root defaults to MC 1.21.1. Edit these values and rebuild:
 
-Run the bundled PowerShell script:
-
-```powershell
-.\build_all_versions.ps1
+```properties
+minecraft_version = 1.21.4
+# Fabric (only)
+yarn_mappings = 1.21.4+build.8
+loader_version = 0.16.10
+# Forge (only)
+forge_version = 54.1.6
+# NeoForge (only)
+neoforge_version = 21.4.157
 ```
 
-It loops through every supported MC version, builds each, and copies all jars to `./dist/` named like `whenchat-1.0.0-mc1.21.4.jar`.
-
-The script restores `gradle.properties` to its original state after running.
+Only the values relevant to the loader you are building need to be correct.
 
 ## Automated CI Builds
 
-Every push to `main` triggers a GitHub Actions matrix build for all 1.21.x versions. Artifacts are attached to each workflow run.
+Every push to `main` runs the full matrix on GitHub Actions:
 
-Pushing a tag of the form `v1.0.0` triggers a **separate GitHub Release per Minecraft version**, each with its own JAR attached:
+- 24 Fabric jobs
+- 7 NeoForge jobs
+- 6 Forge jobs
+
+= **37 builds** per push. Artifacts are attached to each workflow run so they can be downloaded individually.
+
+### Tagged releases
+
+Pushing a `v*` tag produces one GitHub Release per Minecraft version with all matching loader JARs attached:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.3
+git push origin v1.0.3
 ```
 
-This produces releases like:
+For example, the `v1.0.3-mc1.21.1` release ships `whenchat-fabric-mc1.21.1.jar`, `whenchat-neoforge-mc1.21.1.jar` and `whenchat-forge-mc1.21.1.jar` as assets.
 
-- `v1.0.0-mc1.21` — JAR for Minecraft 1.21
-- `v1.0.0-mc1.21.1` — JAR for Minecraft 1.21.1
-- ...
-- `v1.0.0-mc1.21.8` — JAR for Minecraft 1.21.8
+## Publishing to Modrinth
+
+`upload_to_modrinth.ps1` uploads every GitHub-released JAR to Modrinth as a separate version, with the correct `loaders` flag (Fabric jar is also marked as Quilt-compatible) and Fabric API set as a required dependency for Fabric/Quilt uploads.
+
+```powershell
+$env:MODRINTH_TOKEN = "mrp_yourTokenHere"
+.\upload_to_modrinth.ps1
+```
+
+The script is idempotent: existing Modrinth versions are skipped, so it is safe to re-run after adding new MC versions or bumping the mod version.
 
 ## Tests
 
-The timestamp-formatting logic lives in `com.mukse.whenchat.TimestampPrefix` — a pure helper extracted from the mixin so it can be unit-tested without bringing the Minecraft / Mixin runtime onto the test classpath.
+The timestamp-formatting logic lives in `TimestampPrefix` — a pure helper extracted from the mixin so it can be unit-tested without bringing the Minecraft / Mixin runtime onto the test classpath.
 
 Run the test suite locally:
 
 ```bash
-.\gradlew.bat test
+./gradlew :fabric:test
 ```
 
-The CI matrix runs these tests on **every supported 1.21.x version**, so any regression is caught against all targets in one push.
+The CI matrix runs these tests on every supported Minecraft version, so any regression is caught against all targets in one push.
 
 ## How It Works
 
-A mixin in `net.minecraft.client.gui.hud.ChatHud#addMessage` intercepts every incoming message and prepends the current timestamp. Two mixin targets are registered so different 1.21.x builds work without code changes (`require = 0` lets non-matching signatures silently no-op).
+A mixin in `ChatHud#addMessage` (Fabric / Yarn names) or `ChatComponent#addMessage` (Forge / NeoForge / Mojang names) intercepts every incoming chat message and prepends the current timestamp. The mixin targets the two public `addMessage` overloads that exist across every supported version; a regex guard in the wrap method prevents double-prepending when one overload delegates to the other.
 
 ## License
 
