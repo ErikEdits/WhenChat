@@ -65,15 +65,13 @@ $fabricVersions = @(
 )
 
 $neoforgeVersions = @(
-    @{ mc = "1.20.6"; neoforge = "20.6.119" },
+    @{ mc = "1.20.6"; neoforge = "20.6.139" },
     @{ mc = "1.21";   neoforge = "21.0.167" },
-    @{ mc = "1.21.1"; neoforge = "21.1.180" },
-    @{ mc = "1.21.3"; neoforge = "21.3.91"  },
-    @{ mc = "1.21.4"; neoforge = "21.4.149" },
-    @{ mc = "1.21.5"; neoforge = "21.5.94"  },
-    @{ mc = "1.21.6"; neoforge = "21.6.20"  },
-    @{ mc = "1.21.7"; neoforge = "21.7.40"  },
-    @{ mc = "1.21.8"; neoforge = "21.8.49"  }
+    @{ mc = "1.21.1"; neoforge = "21.1.233" },
+    @{ mc = "1.21.3"; neoforge = "21.3.96"  },
+    @{ mc = "1.21.4"; neoforge = "21.4.157" },
+    @{ mc = "1.21.5"; neoforge = "21.5.97"  },
+    @{ mc = "1.21.8"; neoforge = "21.8.53"  }
 )
 
 $forgeVersions = @(
