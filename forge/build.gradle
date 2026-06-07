@@ -9,7 +9,6 @@ base {
 }
 
 mixin {
-	add sourceSets.main, "whenchat-forge.refmap.json"
 	config "whenchat-forge.mixins.json"
 }
 

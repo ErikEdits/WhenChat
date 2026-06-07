@@ -3,7 +3,6 @@
   "package": "com.mukse.whenchat.forge.mixin",
   "compatibilityLevel": "JAVA_17",
   "minVersion": "0.8",
-  "refmap": "whenchat-forge.refmap.json",
   "client": [
     "ChatComponentMixin"
   ],
