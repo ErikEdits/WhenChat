@@ -13,7 +13,10 @@
 #   $env:MODRINTH_TOKEN = "mrp_yourTokenHere"
 #   .\upload_to_modrinth.ps1
 #
-# Required PAT scopes: Read projects + Create versions.
+# Required PAT scopes:
+#   - Read projects
+#   - Create versions
+#   - Write projects (optional, only needed to auto-set project to client-side only)
 
 $ErrorActionPreference = "Stop"
 
@@ -104,6 +107,35 @@ $project   = (Get-Content -Raw $projectFile) | ConvertFrom-Json
 $projectId = $project.id
 Write-Host "  Project: $($project.title)  (id: $projectId)"
 
+# --- Force project-wide environment to client-side only ---------------------
+# WhenChat only modifies how chat is rendered on the client. Mark the project
+# as client_side=required, server_side=unsupported so Modrinth filters and
+# the new version-level environment UI behave correctly.
+
+if ($project.client_side -ne "required" -or $project.server_side -ne "unsupported") {
+    Write-Host "  Patching project environment to client-side only..."
+    $patchPayload = @{ client_side = "required"; server_side = "unsupported" } | ConvertTo-Json -Compress
+    $patchFile = Join-Path $tmpDir "patch.json"
+    [System.IO.File]::WriteAllText($patchFile, $patchPayload, [System.Text.UTF8Encoding]::new($false))
+
+    $respFile = Join-Path $tmpDir "patch-resp.txt"
+    $patchStatus = & curl.exe -s -o $respFile -w "%{http_code}" `
+        -H "Authorization: $token" -H "User-Agent: $userAgent" `
+        -H "Content-Type: application/json" `
+        -X PATCH `
+        --data-binary "@$patchFile" `
+        "https://api.modrinth.com/v2/project/$projectId"
+    if ($patchStatus -eq "204" -or $patchStatus -eq "200") {
+        Write-Host "  Project environment updated: client_side=required, server_side=unsupported" -ForegroundColor Green
+    } else {
+        $body = if (Test-Path $respFile) { Get-Content -Raw $respFile } else { "" }
+        Write-Warning "  Could not patch project environment (HTTP $patchStatus): $body"
+        Write-Warning "  (Continuing - your PAT may not have 'Write projects' scope. Set client/server-side manually at https://modrinth.com/mod/$slug/settings)"
+    }
+} else {
+    Write-Host "  Project environment already client-side only - nothing to patch"
+}
+
 # --- Fetch existing versions ------------------------------------------------
 
 $existingFile = Join-Path $tmpDir "existing.json"
@@ -161,6 +193,10 @@ function Upload-Version {
         loaders        = $LoaderArray
         featured       = $false
         status         = "listed"
+        # Mark this version as client-only (Modrinth's new per-version
+        # environment metadata - ignored if your project predates it).
+        client_side    = "required"
+        server_side    = "unsupported"
         project_id     = $projectId
         file_parts     = @($JarName)
         primary_file   = $JarName
