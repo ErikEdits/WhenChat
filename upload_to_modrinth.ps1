@@ -146,6 +146,31 @@ $existingSet = @{}
 foreach ($ev in $existing) { $existingSet[$ev.version_number] = $true }
 Write-Host "  Found $($existing.Count) existing Modrinth version(s)"
 
+# --- Backfill environment metadata on existing versions ---------------------
+# Older uploads were created before this script set per-version env, so they
+# show 'Unknown environment' on Modrinth. Patch them all to client-only.
+
+Write-Host ""
+Write-Host "Backfilling environment metadata on existing versions..."
+$backfillCount = 0
+foreach ($ev in $existing) {
+    if ($ev.client_side -ne "required" -or $ev.server_side -ne "unsupported") {
+        $patch = @{ client_side = "required"; server_side = "unsupported" } | ConvertTo-Json -Compress
+        $patchPath = Join-Path $tmpDir "backfill-$($ev.id).json"
+        [System.IO.File]::WriteAllText($patchPath, $patch, [System.Text.UTF8Encoding]::new($false))
+        $code = & curl.exe -s -o NUL -w "%{http_code}" `
+            -H "Authorization: $token" -H "User-Agent: $userAgent" `
+            -H "Content-Type: application/json" `
+            -X PATCH --data-binary "@$patchPath" `
+            "https://api.modrinth.com/v2/version/$($ev.id)"
+        if ($code -eq "204" -or $code -eq "200") {
+            $backfillCount++
+        }
+        Start-Sleep -Milliseconds 250
+    }
+}
+Write-Host "  Backfilled $backfillCount existing version(s) to client-side only"
+
 # --- Upload helper ----------------------------------------------------------
 
 function Upload-Version {
@@ -217,10 +242,37 @@ function Upload-Version {
         $created = $body | ConvertFrom-Json
         $url = "https://modrinth.com/mod/$slug/version/$($created.version_number)"
         Write-Host "  OK $url" -ForegroundColor Green
+
+        # Modrinth's new per-version environment metadata isn't recognized via
+        # the POST body, so patch the just-created version explicitly.
+        Set-VersionEnvironment -VersionId $created.id
+
         return [PSCustomObject]@{ Loader = $LoaderTag; MC = $Mc; Status = "OK"; Url = $url }
     } else {
         Write-Warning "  HTTP $httpCode - $body"
         return [PSCustomObject]@{ Loader = $LoaderTag; MC = $Mc; Status = "HTTP $httpCode"; Url = "" }
+    }
+}
+
+function Set-VersionEnvironment {
+    param([string]$VersionId)
+
+    $patch = @{ client_side = "required"; server_side = "unsupported" } | ConvertTo-Json -Compress
+    $patchPath = Join-Path $tmpDir "ver-env-$VersionId.json"
+    [System.IO.File]::WriteAllText($patchPath, $patch, [System.Text.UTF8Encoding]::new($false))
+
+    $respFile = Join-Path $tmpDir "ver-env-resp-$VersionId.txt"
+    $code = & curl.exe -s -o $respFile -w "%{http_code}" `
+        -H "Authorization: $token" -H "User-Agent: $userAgent" `
+        -H "Content-Type: application/json" `
+        -X PATCH `
+        --data-binary "@$patchPath" `
+        "https://api.modrinth.com/v2/version/$VersionId"
+    if ($code -eq "204" -or $code -eq "200") {
+        Write-Host "    Environment patched (client-side only)" -ForegroundColor DarkGreen
+    } else {
+        $body = if (Test-Path $respFile) { Get-Content -Raw $respFile } else { "" }
+        Write-Warning "    Environment PATCH failed (HTTP $code): $body"
     }
 }
 
