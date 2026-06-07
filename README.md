@@ -9,7 +9,6 @@ Never lose track of when a message was sent again — perfect for busy servers, 
 | Loader        | Minecraft versions                                |
 | ------------- | ------------------------------------------------- |
 | **Fabric**    | 1.19, 1.19.1 – 1.19.4, 1.20 – 1.20.6, 1.21 – 1.21.11 (24 versions) |
-| **Quilt**     | Same as Fabric — Quilt Loader runs the Fabric JAR natively |
 | **NeoForge**  | 1.20.6, 1.21, 1.21.1, 1.21.3, 1.21.4, 1.21.5, 1.21.8 |
 | **Forge**     | 1.20.6, 1.21, 1.21.1, 1.21.3, 1.21.4, 1.21.5      |
 
@@ -23,7 +22,7 @@ The project is laid out as one Gradle subproject per loader:
 
 ```
 .
-├── fabric/      ← Fabric (and Quilt) sources
+├── fabric/      ← Fabric sources
 ├── neoforge/    ← NeoForge sources
 └── forge/       ← Forge sources
 ```

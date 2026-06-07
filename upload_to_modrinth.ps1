@@ -1,10 +1,9 @@
 # Uploads every WhenChat release JAR to Modrinth as a separate Modrinth version.
 #
 # Per (MC version + loader) combination produces ONE Modrinth version, with:
-#   - The correct loader(s) flag (Fabric jar is also marked as Quilt-compatible
-#     because Quilt Loader runs Fabric mods natively)
+#   - The correct loader flag
 #   - The correct Minecraft version
-#   - Fabric API as a required dependency for Fabric/Quilt uploads
+#   - Fabric API as a required dependency for Fabric uploads
 #
 # Idempotent: existing Modrinth versions are skipped, so this is safe to re-run
 # after adding new MC versions or loaders.
@@ -232,12 +231,12 @@ $results = @()
 # Fabric (+ Quilt via fabric jar)
 foreach ($v in $fabricVersions) {
     $changelog = @"
-Release of **WhenChat $modVersion** for **Minecraft $($v.mc)** on **Fabric / Quilt**.
+Release of **WhenChat $modVersion** for **Minecraft $($v.mc)** on **Fabric**.
 
 WhenChat prepends a ``[HH:mm:ss]`` timestamp in front of every chat message you receive. Client-side only.
 
 Build info:
-- Loader: Fabric (also loads on Quilt)
+- Loader: Fabric
 - Fabric Loader: $($v.loader)
 - Yarn mappings: $($v.yarn)
 - Java: 17 or newer
@@ -246,7 +245,7 @@ Source code: https://github.com/$githubRepo
 "@
     $results += Upload-Version `
         -LoaderTag "fabric" `
-        -LoaderArray @("fabric", "quilt") `
+        -LoaderArray @("fabric") `
         -Mc $v.mc `
         -JarName "whenchat-fabric-mc$($v.mc).jar" `
         -DownloadUrl "https://github.com/$githubRepo/releases/download/v$modVersion-mc$($v.mc)/whenchat-fabric-mc$($v.mc).jar" `

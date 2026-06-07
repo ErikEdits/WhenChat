@@ -135,7 +135,7 @@ jobs:
             **WhenChat ${{ github.ref_name }}** for **Minecraft ${{ matrix.mc }}**.
 
             Pick the JAR that matches your loader:
-            - `whenchat-fabric-mc${{ matrix.mc }}.jar` — Fabric / Quilt (Quilt Loader runs Fabric mods natively)
+            - `whenchat-fabric-mc${{ matrix.mc }}.jar` — Fabric
             - `whenchat-neoforge-mc${{ matrix.mc }}.jar` — NeoForge (only attached for MC 1.20.5+)
             - `whenchat-forge-mc${{ matrix.mc }}.jar` — Forge (only attached for MC 1.20.5+)
           files: dist/whenchat-fabric-mc${{ matrix.mc }}.jar
